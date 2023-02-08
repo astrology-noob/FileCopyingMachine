@@ -1,78 +1,74 @@
 ﻿using FileCopyingMachine;
 using System.Text.Json;
 
-AppConfiguration? configuration;
-Logger logger = new();
-string now = DateTime.Now.ToString().Replace(':', '-');
+AppConfiguration configuration;
+string now = DateTime.Now.ToString("dd.MM.yyyy HH-mm-ss");
 
-logger.CreateLogFile(now);
-
-logger.WriteLog("App started", Logger.LogType.Info);
+Logger.CreateLogFile(now);
 
 using (StreamReader r = new StreamReader("C:\\Users\\Мелания\\Documents\\FileCopyingMachine\\settings.json"))
 {
     string json = r.ReadToEnd();
-    configuration = JsonSerializer.Deserialize<AppConfiguration>(json);
+    configuration = JsonSerializer.Deserialize<AppConfiguration>(json) ?? new();
 }
 
-logger.WriteLog("Configuration read", Logger.LogType.Info);
-
-if (configuration == null)
+if (configuration.InitialDirectories == null)
 {
-    logger.WriteLog("Configuration not specified. Fatal Error", Logger.LogType.Error);
-    throw new Exception("PathConfiguration not specified");
+    ExceptionHandler.HandleException("Initial Directories were not specified");
 }
 
-logger.appLogLevel = configuration.LogLevel;
-
-string? target_dir_path = configuration.TargetDirectory;
-List<string>? init_dir_paths = configuration.InitialDirectories;
-
-if (!Directory.Exists(target_dir_path))
+if (configuration.TargetDirectory == null)
 {
-    logger.WriteLog("Target directory does not exist. Fatal Error", Logger.LogType.Error);
-    throw new Exception("Target directory does not exist");
+    ExceptionHandler.HandleException("Target Directory was not specified");
 }
 
-if (!Directory.Exists(target_dir_path))
+if (configuration.LogLevel == null)
 {
-    logger.WriteLog("Initial directories list was not specified. Fatal Error", Logger.LogType.Error);
-    throw new Exception("Target directory does not exist");
+    ExceptionHandler.HandleException("LogLevel was not specified");
 }
 
-foreach (string init_dir_path in init_dir_paths)
+List<string> initDirPathList = configuration.InitialDirectories!;
+string targetDirPath = configuration.TargetDirectory!;
+
+try
 {
-    if (!Directory.Exists(init_dir_path))
+    Logger.AppLogLevel = Enum.Parse<Logger.LogType>(configuration.LogLevel!);
+}
+catch
+{
+    ExceptionHandler.HandleException("Specified LogLevel is not supported");
+}
+
+if (!Directory.Exists(targetDirPath))
+{
+    ExceptionHandler.HandleException("Target directory " + targetDirPath + " does not exist");
+}
+
+foreach (var initDirPath in initDirPathList)
+{
+    if (!Directory.Exists(initDirPath))
     {
-        logger.WriteLog("Initial directory does not exist. Fatal Error", Logger.LogType.Error);
-        throw new Exception("Initial directory does not exist");
+        ExceptionHandler.HandleException("Initial directory " + initDirPath + " does not exist");
     }
 
-    string backup_directory;
+    string backupDirectory = targetDirPath + "/backup " + now;
 
-    if (init_dir_paths.Count == 1)
-    {
-        backup_directory = target_dir_path + "/backup " + now;
-    }
+    string[] initDirPathArr = initDirPath.Split('\\');
+    backupDirectory += "\\" + initDirPathArr[^1];
 
-    else {
-        string[] init_dir_path_arr = init_dir_path.Split('\\');
-        backup_directory = target_dir_path + "/backup " + now + "/" + init_dir_path_arr[init_dir_path_arr.Length - 1];
-    }
+    Directory.CreateDirectory(backupDirectory);
+    Logger.WriteLog("Backup directory created", Logger.LogType.Info);
 
-    Directory.CreateDirectory(backup_directory);
-    logger.WriteLog("Backup directory created", Logger.LogType.Info);
+    string[] files = Directory.GetFiles(initDirPath);
+    Logger.WriteLog("Got list of files in directory", Logger.LogType.Debug);
 
-    string[] files = Directory.GetFiles(init_dir_path);
-    logger.WriteLog("Got list of files in directory", Logger.LogType.Debug);
-
-    foreach (string file in files)
+    foreach (var file in files)
     {
         string[] fileNameArr = file.Split('\\');
-        string newFile = backup_directory + "/" + fileNameArr[fileNameArr.Length - 1];
+        string newFile = backupDirectory + "\\" + fileNameArr[^1];
         File.Copy(file, newFile);
-        logger.WriteLog("File " + fileNameArr[fileNameArr.Length - 1] + " copied", Logger.LogType.Debug);
+        Logger.WriteLog("File " + file + " copied", Logger.LogType.Debug);
     }
 }
 
-logger.WriteLog("App finished", Logger.LogType.Info);
+Logger.WriteLog("App finished", Logger.LogType.Info);

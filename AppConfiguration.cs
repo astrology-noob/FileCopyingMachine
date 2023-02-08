@@ -1,6 +1,6 @@
 ﻿namespace FileCopyingMachine
 {
-    internal class AppConfiguration
+    internal sealed class AppConfiguration
     {
         public List<string>? InitialDirectories { get; set; }
         public string? TargetDirectory { get; set; }

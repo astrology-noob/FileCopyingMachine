@@ -1,29 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FileCopyingMachine
+﻿namespace FileCopyingMachine
 {
-    internal class Logger
+    internal static class Logger
     {
-        public string? appLogLevel;
-        public string? journalName;
+        public static LogType AppLogLevel = LogType.Error;
+        private static string _journalName = string.Empty;
 
-        public void CreateLogFile(string now)
+        public static void CreateLogFile(string now)
         {
-            journalName = "C:\\Users\\Мелания\\Documents\\test_logs\\log " + now + ".txt";
+            _journalName = "C:\\Users\\Мелания\\Documents\\test_logs\\log " + now + ".txt";
         }
 
-        public void WriteLog(string logMessage, LogType logType)
+        public static void WriteLog(string logMessage, LogType logType)
         {
-            if (logType.ToString() == appLogLevel)
+            if (logType == AppLogLevel)
             {
-                File.AppendAllText(journalName, DateTime.UtcNow.ToString());
-                File.AppendAllText(journalName, ": ");
-                File.AppendAllText(journalName, logMessage + "\n");
+                File.AppendAllText(_journalName, DateTime.Now.ToString());
+                File.AppendAllText(_journalName, ": ");
+                File.AppendAllText(_journalName, logMessage + "\n");
             }
         }
 
